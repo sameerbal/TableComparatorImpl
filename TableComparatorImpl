@@ -1,0 +1,100 @@
+package utilities;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+public class TableComparatorImpl implements TableComparator {
+
+	public static final String DATA_MISMATCH = "Data MisMatch";
+	public static final String DATA_MATCH = "Data Matched";
+	public static final String ROW_MISSING = "Row Missing";
+
+	@Override
+	public Map<String, List<TableCellData>> compareFiles(Map<String, List<TableCellData>> leftSide,
+			Map<String, List<TableCellData>> rightSide) {
+		return getDiff(leftSide, rightSide);
+	}
+
+	private Map<String, List<TableCellData>> getDiff(Map<String, List<TableCellData>> mapA,
+			Map<String, List<TableCellData>> mapB) {
+
+		Map<String, List<TableCellData>> mapAProxy = new TreeMap<String, List<TableCellData>>();
+		Map<String, List<TableCellData>> dataMismatchMap = new TreeMap<String, List<TableCellData>>();
+		Map<String, List<TableCellData>> dataMatchMap = new TreeMap<String, List<TableCellData>>();
+		Map<String, List<TableCellData>> rowMissing = new TreeMap<String, List<TableCellData>>();
+
+		mapAProxy.putAll(mapA);
+		for (String s : mapB.keySet()) {
+			
+			if (mapAProxy.containsKey(s)) {
+				
+				List<TableCellData> leftSideRowData = mapAProxy.get(s);
+				List<TableCellData> rightSideRowData = mapB.get(s);
+				
+				if (compareValues(leftSideRowData, rightSideRowData)) {
+					
+					List<TableCellData> list = new ArrayList<TableCellData>(mapA.get(s));
+					list.add(createStatusRowData(DATA_MISMATCH));
+					dataMismatchMap.put(s, list);
+
+				} else {
+					List<TableCellData> matchedRowData = mapB.get(s);
+					matchedRowData.add(createStatusRowData(DATA_MATCH));
+					dataMatchMap.put(s, mapB.get(s));
+					mapAProxy.remove(s);
+				}
+				
+			} else {
+
+				List<TableCellData> list = new ArrayList<TableCellData>(mapB.get(s));
+				list.add(createStatusRowData(ROW_MISSING));
+				rowMissing.put(s, list);
+			}
+
+		}
+		addMissing(mapAProxy);
+		mapAProxy.putAll(dataMismatchMap);
+		mapAProxy.putAll(dataMatchMap);
+		mapAProxy.putAll(rowMissing);
+
+		return mapAProxy;
+	}
+
+	private void addMissing(Map<String, List<TableCellData>> data) {
+		Iterator<List<TableCellData>> valuesIter = data.values().iterator();
+		while (valuesIter.hasNext()) {
+			List<TableCellData> next = valuesIter.next();
+			next.add(createStatusRowData(ROW_MISSING));
+		}
+	}
+
+	private TableCellData createStatusRowData(String statusName) {
+		TableCellData data = new TableCellData();
+		data.setCellValue(statusName);
+		data.setColumnName("Status");
+		return data;
+	}
+
+	private static boolean compareValues(List<TableCellData> l1, List<TableCellData> l2) {
+
+		if (l1 == null || l2 == null) {
+			return false;
+		}
+		if (l1.size() != l2.size()) {
+			return false;
+		}
+
+		for (int i = 0; i < l1.size(); i++) {
+
+			if (!l1.get(i).getCellValue().equals(l1.get(i).getCellValue())) {
+				return true;
+			}
+		}
+		return false;
+
+	}
+
+}
